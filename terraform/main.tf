@@ -15,14 +15,20 @@ data "aws_ami" "latest_amazon_linux" {
 
 #############################################
 
-resource "aws_default_vpc" "default" {}
-
-resource "default_subnet" "default_az1"{
-  availability_zone = data.aws_availability_zone.working.names[0]
+data "aws_vpc" "default" {
+  default = true
 }
 
-resource "default_subnet" "default_az2"{
-  availability_zone = data.aws_availability_zone.working.names[1]
+data "aws_subnets" "default" {
+  filter {
+    name   = "vpc-id"
+    values = [data.aws_vpc.default.id]
+  }
+}
+
+data "aws_subnet" "default" {
+  count = length(data.aws_subnets.default.ids)
+  id    = data.aws_subnets.default.ids[count.index]
 }
 
 ############################################
@@ -30,7 +36,7 @@ resource "default_subnet" "default_az2"{
 resource "aws_security_group" "web" {
 
   name          = "web sg"
-  vpc_id        = aws_default_vpc.default.id
+  vpc_id        = data.aws_vpc.default.id
 
   dynamic "ingress" {
     for_each    = ["80", "443"]
@@ -54,11 +60,11 @@ resource "aws_security_group" "web" {
 
 resource "aws_launch_template" "web" {
 
-  name                   = "launch template"
+  name                   = "LaunchTemplate"
   image_id               = data.aws_ami.latest_amazon_linux.id
-  instance_type          = "t2_micro"
-  vpc_security_group_ids = [aws_security_group.id]
-  userdata               = filebase64("${path.module}/user_data.sh")
+  instance_type          = "t2.micro"
+  vpc_security_group_ids = [aws_security_group.web.id]
+  user_data               = filebase64("${path.module}/user_data.sh")
 }
 
 ############################################
@@ -70,7 +76,7 @@ resource "aws_autoscaling_group" "web" {
   max_size                = 3
   min_elb_capacity        = 2
   health_check_type       = "ELB"
-  vpc_zone_identifier     = [aws_default_subnet.default_az1.id, aws_default_subnet.default_az2.id]
+  vpc_zone_identifier     = [data.aws_subnets.default.ids[0],data.aws_subnets.default.ids[1]]
   target_group_arns       = [aws_lb_target_group.web.arn]
 
   launch_template{
@@ -85,18 +91,18 @@ resource "aws_autoscaling_group" "web" {
 
 ############################################
 
-resource "aws_elb" "web" {
+resource "aws_lb" "web" {
 
   name               = "alb"
   load_balancer_type = "application"
   security_groups    = [aws_security_group.web.id]
-  subnets            = [aws_default_subnet.subnet_az1.id, aws_default_subnet.subnet_az2.id]  
+  subnets            = [data.aws_subnets.default.ids[0],data.aws_subnets.default.ids[1]] 
 }
 
 resource "aws_lb_target_group" "web" {
 
-  name                 = "target group"
-  vpc_id               = aws_default_vpc.default.id
+  name                 = "TargetGroup"
+  vpc_id               = data.aws_vpc.default.id
   port                 = 80
   protocol             = "HTTP"
   deregistration_delay = 10
