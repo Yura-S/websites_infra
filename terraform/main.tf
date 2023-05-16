@@ -2,14 +2,14 @@
 
 data "aws_availability_zones" "working" {}
 
-data "aws_ami" "latest_amazon_linux" {
+data "aws_ami" "latest_ubuntu" {
 
-  owners      = ["137112412989"]
+  owners      = ["099720109477"]
   most_recent = true
 
   filter {
   name        = "name"
-  values      = ["amzn2-ami-hvm-*-x86_64-gp2"]
+  values      = ["ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*"]
   }
 }
 
@@ -39,7 +39,7 @@ resource "aws_security_group" "web" {
   vpc_id        = data.aws_vpc.default.id
 
   dynamic "ingress" {
-    for_each    = ["80", "443"]
+    for_each    = ["80", "443", "22"]
     content {
     from_port   = ingress.value
     to_port     = ingress.value
@@ -61,7 +61,7 @@ resource "aws_security_group" "web" {
 resource "aws_launch_template" "web" {
 
   name                   = "LaunchTemplate"
-  image_id               = data.aws_ami.latest_amazon_linux.id
+  image_id               = data.aws_ami.latest_ubuntu.id
   instance_type          = "t2.micro"
   vpc_security_group_ids = [aws_security_group.web.id]
   user_data               = filebase64("${path.module}/user_data.sh")
@@ -106,6 +106,10 @@ resource "aws_lb_target_group" "web" {
   port                 = 80
   protocol             = "HTTP"
   deregistration_delay = 10
+
+  health_check {
+    path = "/index.html"
+  }
 }
 
 resource "aws_lb_listener" "http" {
