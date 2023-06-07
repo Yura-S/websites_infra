@@ -1,62 +1,67 @@
-name: 'Terraform'
+name: CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches:
+      - main
   pull_request:
-
-permissions:
-  contents: read
+    branches:
+      - main
 
 jobs:
-  terraform:
-    name: 'Terraform'
+  build:
     runs-on: ubuntu-latest
-    environment: production
-
-    # Use the Bash shell regardless whether the GitHub Actions runner is ubuntu-latest, macos-latest, or windows-latest
-    defaults:
-      run:
-        shell: bash
 
     steps:
-    # Checkout the repository to the GitHub Actions runner
-    - name: Checkout
-      uses: actions/checkout@v3
-      
+    
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v1
       with:
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: ${{ secrets.AWS_REGION }}  
-
-    # Install the latest version of Terraform CLI and configure the Terraform CLI configuration file with a Terraform Cloud user API token
+    
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v1
       with:
-        cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}    
-
-    # Initialize a new or existing Terraform working directory by creating initial files, loading any remote state, downloading modules, etc.
-    - name: Terraform Init
-      working-directory: terraform
-      run: terraform init 
+        cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
+           
+    - name: Checkout code
+      uses: actions/checkout@v2
       
-    # Generates an execution plan for Terraform
-    - name: Terraform Plan
+    - name: run terraform initialization
       working-directory: terraform
-      run: terraform plan -input=false
-
-      # On push to "main", build or change infrastructure according to Terraform configuration files
-      # Note: It is recommended to set up a required "strict" status check in your repository for "Terraform Cloud". See the documentation on "strict" required status checks for more information: https://help.github.com/en/github/administering-a-repository/types-of-required-status-checks
-    - name: Terraform Apply
+      run: terraform init
+      
+    - name: run terraform destruction
       working-directory: terraform
-      #if: github.ref == 'refs/heads/"main"' && github.event_name == 'push'
-      run: terraform apply -auto-approve -input=false
-
-    - name: terraform destroy  
+      run: terraform destroy -auto-approve || true
+      
+    - name: run ami and snapshot destruction
+      run: |
+        aws ec2 describe-images --filters "Name=tag:name,Values=WebSiteImage" --query 'Images[].ImageId' --output text | xargs -n 1 aws ec2 deregister-image --image-id || true
+        aws ec2 describe-snapshots --filters "Name=tag:name,Values=WebSiteImage" --query 'Snapshots[].SnapshotId' --output text | xargs -n 1 aws ec2 delete-snapshot --snapshot-id  || true
+      
+    - name: run packer initialization
+      working-directory: packer
+      run: packer init .
+      
+    - name: run packer building
+      working-directory: packer
+      run: packer build aws-ubuntu.pkr.hcl
+	  
+	  - name: create ssl files on terraform location
       working-directory: terraform
-      run: terraform destroy -auto-approve
+      run: |  
+	      echo ${{ secrets.CERT }} > cert.pem
+		    echo ${{ secrets.CHAIN }} > chain.pem
+		    echo ${{ secrets.PRIVKEY }} > privkey.pem
       
+    - name: run terraform planning
+      working-directory: terraform
+      run: terraform plan
       
-      
+    - name: run terraform applying
+      working-directory: terraform
+      run: terraform apply -auto-approve
+    
