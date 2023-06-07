@@ -32,9 +32,6 @@ jobs:
     - name: create ssl files on terraform location
       working-directory: terraform
       run: |  
-        touch cert.pem
-        touch chain.pem
-        touch privkey.pem
         echo ${{ secrets.CERT }} > cert.pem
         echo ${{ secrets.CHAIN }} > chain.pem
         echo ${{ secrets.PRIVKEY }} > privkey.pem
