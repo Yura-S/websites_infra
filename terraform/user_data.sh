@@ -1,5 +1,3 @@
 #!/bin/bash
-apt -y update
-apt -y install apache2
-sudo service httpd start
-chkconfig httpd on
+cd root
+docker-compose up -d

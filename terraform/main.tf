@@ -2,14 +2,23 @@
 
 data "aws_availability_zones" "working" {}
 
-data "aws_ami" "latest_ubuntu" {
+#data "aws_ami" "latest_ubuntu" {
+#
+#  owners      = ["099720109477"]
+#  most_recent = true
+#
+#  filter {
+#  name        = "name"
+#  values      = ["ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*"]
+#  }
+#}
 
-  owners      = ["099720109477"]
+data "aws_ami" "SiteImage" {
   most_recent = true
 
-  filter {
-  name        = "name"
-  values      = ["ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*"]
+  owners = ["self"]
+  tags = {
+    Name   = "WebSiteImage"
   }
 }
 
@@ -61,7 +70,7 @@ resource "aws_security_group" "web" {
 resource "aws_launch_template" "web" {
 
   name                   = "LaunchTemplate"
-  image_id               = data.aws_ami.latest_ubuntu.id
+  image_id               = data.aws_ami.SiteImage.id
   instance_type          = "t2.micro"
   vpc_security_group_ids = [aws_security_group.web.id]
   user_data               = filebase64("${path.module}/user_data.sh")
@@ -108,7 +117,7 @@ resource "aws_lb_target_group" "web" {
   deregistration_delay = 10
 
   health_check {
-    path = "/index.html"
+    path = "/"
   }
 }
 
