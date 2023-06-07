@@ -56,7 +56,7 @@ jobs:
         echo ${{ secrets.CERT }} > cert.pem
         echo ${{ secrets.CHAIN }} > chain.pem
         echo ${{ secrets.PRIVKEY }} > privkey.pem
-	
+        
     - name: run terraform planning
       working-directory: terraform
       run: terraform plan
