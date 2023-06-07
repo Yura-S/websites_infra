@@ -29,6 +29,13 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v2
       
+    - name: create ssl files on terraform location
+      working-directory: terraform
+      run: |  
+        echo ${{ secrets.CERT }} > cert.pem
+        echo ${{ secrets.CHAIN }} > chain.pem
+        echo ${{ secrets.PRIVKEY }} > privkey.pem
+      
     - name: run terraform initialization
       working-directory: terraform
       run: terraform init
@@ -49,13 +56,6 @@ jobs:
     - name: run packer building
       working-directory: packer
       run: packer build aws-ubuntu.pkr.hcl
-      
-    - name: create ssl files on terraform location
-      working-directory: terraform
-      run: |  
-        echo ${{ secrets.CERT }} > cert.pem
-        echo ${{ secrets.CHAIN }} > chain.pem
-        echo ${{ secrets.PRIVKEY }} > privkey.pem
         
     - name: run terraform planning
       working-directory: terraform
