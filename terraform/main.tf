@@ -22,8 +22,6 @@ data "aws_ami" "SiteImage" {
   }
 }
 
-#############################################
-
 data "aws_vpc" "default" {
   default = true
 }
@@ -38,6 +36,10 @@ data "aws_subnets" "default" {
 data "aws_subnet" "default" {
   count = length(data.aws_subnets.default.ids)
   id    = data.aws_subnets.default.ids[count.index]
+}
+
+data "aws_route53_zone" "existing_zone" {
+  name = "ysahakyan.devopsaca.site"
 }
 
 ############################################
@@ -105,7 +107,7 @@ resource "aws_lb" "web" {
   name               = "alb"
   load_balancer_type = "application"
   security_groups    = [aws_security_group.web.id]
-  subnets            = [data.aws_subnets.default.ids[0],data.aws_subnets.default.ids[1]] 
+  subnets            = [data.aws_subnets.default.ids[0],data.aws_subnets.default.ids[1]]
 }
 
 resource "aws_lb_target_group" "web" {
@@ -127,9 +129,58 @@ resource "aws_lb_listener" "http" {
   port              = 80
   protocol          = "HTTP"
   
+  #default_action {
+  #  type             = "forward"
+  #  target_group_arn = aws_lb_target_group.web.arn
+  #}
+
   default_action {
-    type             = "forward"
+    type             = "redirect"
+    redirect {
+      protocol         = "HTTPS"
+      port             = "443"
+      status_code      = "HTTP_301"
+    }
+  }
+}
+
+resource "aws_lb_listener" "https" {
+  load_balancer_arn = aws_lb.web.arn
+  port              = 443
+  protocol          = "HTTPS"
+
+  ssl_policy                 = "ELBSecurityPolicy-2016-08"
+  certificate_arn = aws_acm_certificate.ycert.arn
+  default_action {
     target_group_arn = aws_lb_target_group.web.arn
+    type             = "forward"
+  }
+}
+
+#resource "aws_lb_listener_certificate" "example_listener_certificate" {
+#  listener_arn    = aws_lb_listener.https.arn
+#  certificate_arn = aws_acm_certificate.ycert.arn
+#}
+############################################
+
+resource "aws_acm_certificate" "ycert" {
+  private_key      = file("${path.module}/privkey.pem")
+  certificate_body = file("${path.module}/cert.pem")
+  certificate_chain = file("${path.module}/chain.pem")
+}
+############################################
+
+resource "aws_route53_record" "lb_record" {
+  zone_id = data.aws_route53_zone.existing_zone.zone_id
+  name    = "ysahakyan.devopsaca.site"
+  type    = "A"
+
+  #records = [aws_lb.web.dns_name]
+
+  alias {
+    name                   = aws_lb.web.dns_name
+    zone_id                = aws_lb.web.zone_id
+    evaluate_target_health = true
   }
 }
 
