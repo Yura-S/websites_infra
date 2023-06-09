@@ -157,10 +157,6 @@ resource "aws_lb_listener" "https" {
   }
 }
 
-#resource "aws_lb_listener_certificate" "example_listener_certificate" {
-#  listener_arn    = aws_lb_listener.https.arn
-#  certificate_arn = aws_acm_certificate.ycert.arn
-#}
 ############################################
 
 resource "aws_acm_certificate" "ycert" {
@@ -172,9 +168,11 @@ resource "aws_acm_certificate" "ycert" {
 
 resource "aws_route53_record" "lb_record" {
   zone_id = data.aws_route53_zone.existing_zone.zone_id
-  name    = "ysahakyan.devopsaca.site"
+  name    = "api.ysahakyan.devopsaca.site"
   type    = "A"
 
+
+  #es sranic araj el er comment @st erevuytin avel er chei jnjel
   #records = [aws_lb.web.dns_name]
 
   alias {
