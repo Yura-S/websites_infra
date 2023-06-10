@@ -150,7 +150,7 @@ resource "aws_lb_listener" "https" {
   protocol          = "HTTPS"
 
   ssl_policy                 = "ELBSecurityPolicy-2016-08"
-  certificate_arn = aws_acm_certificate.ycert.arn
+  certificate_arn = aws_acm_certificate.yapicert.arn
   default_action {
     target_group_arn = aws_lb_target_group.web.arn
     type             = "forward"
@@ -164,6 +164,13 @@ resource "aws_acm_certificate" "ycert" {
   certificate_body = file("${path.module}/cert.pem")
   certificate_chain = file("${path.module}/chain.pem")
 }
+
+resource "aws_acm_certificate" "yapicert" {
+  private_key      = file("${path.module}/privkey1.pem")
+  certificate_body = file("${path.module}/cert1.pem")
+  certificate_chain = file("${path.module}/chain1.pem")
+}
+
 ############################################
 
 resource "aws_route53_record" "lb_record" {
