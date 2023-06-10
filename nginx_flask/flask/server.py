@@ -1,11 +1,13 @@
 #!/usr/bin/env python
 import os
+from flask_cors import CORS
 from flask import Flask
 from flask import render_template
 import requests
 
 app = Flask(__name__)
-
+#cors = CORS(app, resources={r"/*": {"origins": "https://ysahakyan.devopsaca.site"}, "methods": ["GET", "POST"]})
+CORS(app)
 
 @app.route('/')
 def todo():

@@ -1,10 +1,25 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Welcome to My Website</title>
+  <title>API Command Example</title>
 </head>
 <body>
-  <h1>Hello, Nginx!</h1>
-  <p>Welcome to my website hosted by Nginx.</p>
+  <h1>API Command Example</h1>
+  <button onclick="sendCommand()">Send Command</button>
+  <div id="responseContainer"></div>
+
+  <script>
+    function sendCommand() {
+      fetch('https://api.ysahakyan.devopsaca.site/')
+        .then(response => response.text())
+        .then(data => {
+          const responseContainer = document.getElementById('responseContainer');
+          responseContainer.textContent = data;
+        })
+        .catch(error => {
+          console.error('Error:', error);
+        });
+    }
+  </script>
 </body>
 </html>

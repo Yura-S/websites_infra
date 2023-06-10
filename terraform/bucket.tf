@@ -54,10 +54,20 @@ EOF
 }
 
 resource "aws_s3_object" "my_file" {
-  bucket = "bucketforfronend070623"
+  bucket = aws_s3_bucket.my_bucket.id
   key    = "index.html"
   source = "index.html"
   content_type = "text/html"
+  content_disposition = "inline"
+  depends_on = [aws_s3_bucket.my_bucket]
+}
+
+resource "aws_s3_object" "js" {
+  bucket = aws_s3_bucket.my_bucket.id
+  key    = "service-worker.js"  # Replace with your desired key (file name)
+
+  content_type = "text/javascript"
+  source       = "service-worker.js"
   content_disposition = "inline"
   depends_on = [aws_s3_bucket.my_bucket]
 }

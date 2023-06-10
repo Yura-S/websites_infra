@@ -64,6 +64,9 @@
     - name: Install Docker Compose
       command: pip3 install docker-compose
 
+    - name: install flask-cors
+      command: pip3 install flask-cors    
+
     - name: Copy project
       copy:
         src: ../nginx_flask/
